@@ -9,6 +9,57 @@ var ajv = new Ajv();
 export default ({ config, db }) => {
   let api = Router();
 
+
+  // API for login 
+
+  api.post("/login", (req, res) => {
+    let { user_name, password } = req.body;
+    db.query(
+      `select * from users where user_name ='${user_name}' and password = '${password}' `,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          if (response.rows.length == 0) {
+            res.json({ login_message: "Invalid User/ Passwordss" });
+          } else {
+            let authKey = require("uuid/v1");
+            let auth_token = authKey();
+            let status ="successfull";
+            let login_time = new Date().getTime();
+            let query = `insert into session(uuid,user_uuid,token,login_time,active) values ('${response.rows[0].uuid}','${response.rows[0].uuid}','${auth_token}',${login_time},true)`;
+            console.log(query);
+            db.query(query, (err, response1) => {
+              if (err) {
+                console.log(err.stack);
+              } else {
+                res.json({ all: response.rows, auth_token, status });
+              }
+            });
+          }
+        }
+      }
+    );
+  });
+
+ //logout
+    api.put("/logout", (req, res) => {
+      const { auth_token } = req.body;
+      const logout_time = new Date().getTime();
+      db.query(
+        `update session set logout_time=${logout_time}, active=false where auth_token='${auth_token}'`,
+        (err, response) => {
+          if (err) {
+            console.log(err.stack);
+          } else {
+            res.json({ isloggedIn: false });
+          }
+        }
+      );
+    });
+
+
   //user TABLE
 
   api.get("/users", (req, res) => {
@@ -38,7 +89,7 @@ export default ({ config, db }) => {
 
 
   api.post("/users", (req, res, next) => {
-
+//change end point to loginForDoctor
     const validate = ajv.compile(validateCategoryAJV);
     const valid = validate(req.body);
     if (!valid) {

@@ -8,8 +8,8 @@ const envVariables = {
   DB_PORT: process.env.DB_PORT || 5432,
   DB_MAX_POOL_SIZE: process.env.DB_MAX_POOL_SIZE || "5",
   //server configurations
-  SERVER_PORT: process.env.SERVER_PORT || "8080",
-  PORT: 8080,
+  SERVER_PORT: process.env.SERVER_PORT || "8081",
+  PORT: 8081,
 	BODY_LIMIT: "100kb",
 	CROS_HEADERS: ["Link"]
 };

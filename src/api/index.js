@@ -45,10 +45,13 @@ export default ({ config, db }) => {
 
  //logout
     api.put("/logout", (req, res) => {
+      
       const { auth_token } = req.body;
       const logout_time = new Date().getTime();
+      // console.log(auth_token);
+      
       db.query(
-        `update session set logout_time=${logout_time}, active=false where auth_token='${auth_token}'`,
+        `update session set logout_time=${logout_time}, active=false where token='${auth_token}'`,
         (err, response) => {
           if (err) {
             console.log(err.stack);
@@ -58,6 +61,26 @@ export default ({ config, db }) => {
         }
       );
     });
+
+  // user verification
+
+  api.post("/verify", (req, res) => {
+    const { auth_token } = req.body;
+    db.query(
+      `select uuid from session where auth_token='${auth_token}' and active=true`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          if (response.rows.length == 0) {
+            res.json({ isloggedIn: false });
+          } else {
+            res.json({ isloggedIn: true });
+          }
+        }
+      }
+    );
+  });
 
 
   //user TABLE

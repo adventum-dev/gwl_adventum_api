@@ -48,7 +48,6 @@ export default ({ config, db }) => {
       
       const { auth_token } = req.body;
       const logout_time = new Date().getTime();
-      // console.log(auth_token);
       
       db.query(
         `update session set logout_time=${logout_time}, active=false where token='${auth_token}'`,
@@ -67,7 +66,7 @@ export default ({ config, db }) => {
   api.post("/verify", (req, res) => {
     const { auth_token } = req.body;
     db.query(
-      `select uuid from session where auth_token='${auth_token}' and active=true`,
+      `select uuid from session where token='${auth_token}' and active=true`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
@@ -81,6 +80,7 @@ export default ({ config, db }) => {
       }
     );
   });
+
 
 
   //user TABLE
@@ -119,14 +119,14 @@ export default ({ config, db }) => {
       return next({ Errors: validate.errors });
     }
 
-    const { user_name, password } = req.body;
+    const { user_name, password,user_type } = req.body;
 
     const uuidv1 = require('uuid/v1');
     const uuid = uuidv1()
 
     const created_time = new Date().getTime();
 
-    db.query(`insert into users(uuid,user_name,password,created_time,active) values('${uuid}','${user_name}','${password}','${created_time}',true)`,
+    db.query(`insert into users(uuid,user_name,password,created_time,active,user_type) values('${uuid}','${user_name}','${password}','${created_time}',true,'${user_type}')`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
@@ -289,11 +289,11 @@ export default ({ config, db }) => {
 
   api.post("/images", (req, res, next) => {
 
-    const validate = ajv.compile(validatePublicKeyAJV);
-    const valid = validate(req.body);
-    if (!valid) {
-      return next({ Errors: validate.errors });
-    }
+    // const validate = ajv.compile(validatePublicKeyAJV);
+    // const valid = validate(req.body);
+    // if (!valid) {
+    //   return next({ Errors: validate.errors });
+    // }
 
     const { uuid, user_uuid, folder_id, image_id,status,created_by} = req.body;
     // const { uuid, user_uuid, folder_id, image_id, status, created_by, created_date } = req.body;
@@ -346,6 +346,82 @@ export default ({ config, db }) => {
         }
       })
   })
+
+
+  // Unique folder from images table
+
+  api.get("/images_unique_folder", (req, res) => {
+    db.query(`select distinct folder_id from images order by folder_id`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ "images": response.rows });
+        }
+      })
+  })
+
+  
+  // select images based on folder_id
+
+  api.get("/images_unique_images/:cid", (req, res) => {
+
+    db.query(`select image_id,status from images where folder_id='${req.params.cid}' and isactive=true`, (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        console.log(response.rows);
+        res.json({ "categories": response.rows });
+      }
+    });
+  });
+
+
+  //images labelled
+  api.put("/images_labelled/:cid", (req, res) => {
+      
+    // const { s } = req.body;
+    const label = "labelled"
+    const logout_time = new Date().getTime();
+    
+    db.query(
+      `update images set status='${label}' where image_id='${req.params.cid}'`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ status:"labelled"});
+        }
+      }
+    );
+  });
+
+
+    //images under evaluation
+    api.put("/images_evaluation/:cid", (req, res) => {
+      
+      // const { s } = req.body;
+      const label = "under evaluation"
+      const logout_time = new Date().getTime();
+      
+      db.query(
+        `update images set status='${label}' where image_id='${req.params.cid}'`,
+        (err, response) => {
+          if (err) {
+            console.log(err.stack);
+          } else {
+            console.log(response.rows);
+            res.json({ status:"labelled"});
+          }
+        }
+      );
+    });
+
+
+ 
+
 
 
   return api;

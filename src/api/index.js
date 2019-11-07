@@ -447,6 +447,18 @@ export default ({ config, db }) => {
       })
   })
 
+  api.get("/labelled_images", (req, res) => {
+    db.query(`select * from images where labelled_images_id !=''`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ count: response.rows,counts:"succuss" });
+        }
+      })
+  })
+
 
 
   return api;

@@ -336,7 +336,7 @@ export default ({ config, db }) => {
   api.delete("/images/:pkid", (req, res) => {
 
     //take public_key_details cid from path and find the pkid and update flag
-    db.query(`update images set isactive=false where user_uuid='${req.params.pkid}'`,
+    db.query(`update images set isactive=true where user_uuid='${req.params.pkid}'`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
@@ -372,7 +372,7 @@ export default ({ config, db }) => {
         console.log(err.stack);
       } else {
         console.log(response.rows);
-        res.json({ "categories": response.rows });
+        res.json({ categories: response.rows });
       }
     });
   });

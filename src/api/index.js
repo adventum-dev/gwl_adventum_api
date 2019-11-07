@@ -423,7 +423,7 @@ export default ({ config, db }) => {
       // total number of images labelled
 
   api.get("/images_labelled_count", (req, res) => {
-    db.query(`select count(status) from images where status=labelled`,
+    db.query(`select count(status) from images where status='labelled'`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
@@ -436,7 +436,7 @@ export default ({ config, db }) => {
 
 
   api.get("/images_cases_count", (req, res) => {
-    db.query(`select count(images_id) from images `,
+    db.query(`select count(image_id) from images `,
       (err, response) => {
         if (err) {
           console.log(err.stack);

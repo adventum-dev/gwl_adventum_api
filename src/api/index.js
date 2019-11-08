@@ -295,7 +295,7 @@ export default ({ config, db }) => {
     //   return next({ Errors: validate.errors });
     // }
 
-    const { uuid, user_uuid, folder_id, image_id,status,created_by} = req.body;
+    const { uuid, user_uuid, folder_id, image_id,status,created_by,labelled_images_id} = req.body;
     // const { uuid, user_uuid, folder_id, image_id, status, created_by, created_date } = req.body;
 
     const uuidv1 = require('uuid/v1');
@@ -304,7 +304,7 @@ export default ({ config, db }) => {
     const created_date = new Date().getTime();
     
 
-    db.query(`insert into images(uuid,user_uuid,folder_id,image_id,status,created_by,created_date,isactive) values('${uuid1}','${user_uuid}','${folder_id}','${image_id}','${status}','${created_by}',${created_date},true)`,
+    db.query(`insert into images(uuid,user_uuid,folder_id,image_id,status,created_by,created_date,isactive,labelled_images_id) values('${uuid1}','${user_uuid}','${folder_id}','${image_id}','${status}','${created_by}',${created_date},true,'${labelled_images_id}')`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
@@ -367,7 +367,7 @@ export default ({ config, db }) => {
 
   api.get("/images_unique_images/:cid", (req, res) => {
 
-    db.query(`select image_id,status from images where folder_id='${req.params.cid}' and isactive=true`, (err, response) => {
+    db.query(`select * from images where folder_id='${req.params.cid}' and isactive=true`, (err, response) => {
       if (err) {
         console.log(err.stack);
       } else {
@@ -458,6 +458,46 @@ export default ({ config, db }) => {
         }
       })
   })
+
+
+
+  api.post("/patient_info", (req, res, next) => {
+
+
+    const { image_uuid, study_id,age,gender,date_of_birth,date_of_scan,device,eye,folder_id} = req.body;
+
+    const uuidv1 = require('uuid/v1');
+    const uuid = uuidv1()
+
+    const created_date = new Date().getTime();
+    
+
+    db.query(`insert into patient_info(uuid,image_uuid,study_id,age,gender,date_of_birth,date_of_scan,device,eye,created_date,folder_id) values('${uuid}','${image_uuid}','${study_id}','${age}','${gender}','${date_of_birth}','${date_of_scan}','${device}','${eye}','${created_date}',${folder_id})`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ "status": "successfull", "response": response.rows });
+        }
+      });
+  });
+
+
+
+  api.get("/patient_info/:cid", (req, res) => {
+
+    db.query(`SELECT * from patient_info where folder_id='${req.params.cid}'`, (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        console.log(response.rows);
+        res.json({ "categories": response.rows });
+      }
+    });
+  });
+
+
 
 
 

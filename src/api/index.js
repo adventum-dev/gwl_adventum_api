@@ -14,8 +14,9 @@ export default ({ config, db }) => {
 
   api.post("/login", (req, res) => {
     let { user_name, password } = req.body;
+    let user_type = 'doctor'
     db.query(
-      `select * from users where user_name ='${user_name}' and password = '${password}' `,
+      `select * from users where user_name ='${user_name}', password = '${password}' and user_type='${user_type}' `,
       (err, response) => {
         if (err) {
           console.log(err.stack);
@@ -286,6 +287,18 @@ export default ({ config, db }) => {
   })
 
 
+  api.get("/images_id/:pkid", (req, res) => {
+    db.query(`SELECT * from images where image_id='${req.params.pkid}'`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ "images": response.rows });
+        }
+      })
+  })
+
 
   api.post("/images", (req, res, next) => {
 
@@ -377,16 +390,18 @@ export default ({ config, db }) => {
     });
   });
 
+// for image labelled GET
+
 
   //images labelled
   api.put("/images_labelled/:cid", (req, res) => {
       
     // const { s } = req.body;
     const label = "labelled"
-    const logout_time = new Date().getTime();
+    const updated_date = new Date().getTime();
     
     db.query(
-      `update images set status='${label}' where image_id='${req.params.cid}'`,
+      `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
@@ -404,16 +419,16 @@ export default ({ config, db }) => {
       
       // const { s } = req.body;
       const label = "under evaluation"
-      const logout_time = new Date().getTime();
+      const updated_date = new Date().getTime();
       
       db.query(
-        `update images set status='${label}' where image_id='${req.params.cid}'`,
+        `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
         (err, response) => {
           if (err) {
             console.log(err.stack);
           } else {
             console.log(response.rows);
-            res.json({ status:"labelled"});
+            res.json({ status:"under evaluation"});
           }
         }
       );
@@ -488,6 +503,18 @@ export default ({ config, db }) => {
   api.get("/patient_info/:cid", (req, res) => {
 
     db.query(`SELECT * from patient_info where folder_id='${req.params.cid}'`, (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        console.log(response.rows);
+        res.json({ "categories": response.rows });
+      }
+    });
+  });
+
+  api.get("/patient_info_image_uuid/:cid", (req, res) => {
+
+    db.query(`SELECT * from patient_info where image_uuid='${req.params.cid}'`, (err, response) => {
       if (err) {
         console.log(err.stack);
       } else {

@@ -10,16 +10,17 @@ export default ({ config, db }) => {
   let api = Router();
 
 
-  // API for Docotor login 
+  // API for User login 
 
   api.post("/user_login", (req, res) => {
     let { user_name, password } = req.body;
     let user_type = 'doctor'
     db.query(
-      `select * from users where user_name ='${user_name}', password = '${password}' and user_type='${user_type}' `,
+      `select * from users where user_name ='${user_name}' and password = '${password}' and user_type='${user_type}'`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
+          console.log(JSON.stringify(err));
         } else {
           console.log(response.rows);
           if (response.rows.length == 0) {
@@ -34,8 +35,10 @@ export default ({ config, db }) => {
             db.query(query, (err, response1) => {
               if (err) {
                 console.log(err.stack);
+                console.log(JSON.stringify(err))
               } else {
                 res.json({ all: response.rows, auth_token, status });
+                console.log(JSON.stringify(err))
               }
             });
           }
@@ -44,40 +47,42 @@ export default ({ config, db }) => {
     );
   });
 
+   // API for Admin login 
 
-    // API for Admin login 
-
-    api.post("/admin_login", (req, res) => {
-      let { user_name, password } = req.body;
-      let user_type = 'admin'
-      db.query(
-        `select * from users where user_name ='${user_name}', password = '${password}' and user_type='${user_type}' `,
-        (err, response) => {
-          if (err) {
-            console.log(err.stack);
+   api.post("/admin_login", (req, res) => {
+    let { user_name, password } = req.body;
+    let user_type = 'admin'
+    db.query(
+      `select * from users where user_name ='${user_name}' and password = '${password}' and user_type='${user_type}'`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+          console.log(JSON.stringify(err));
+        } else {
+          console.log(response.rows);
+          if (response.rows.length == 0) {
+            res.json({ login_message: "Invalid User/ Passwordss" });
           } else {
-            console.log(response.rows);
-            if (response.rows.length == 0) {
-              res.json({ login_message: "Invalid User/ Passwordss" });
-            } else {
-              let authKey = require("uuid/v1");
-              let auth_token = authKey();
-              let status ="successfull";
-              let login_time = new Date().getTime();
-              let query = `insert into session(uuid,user_uuid,token,login_time,active) values ('${response.rows[0].uuid}','${response.rows[0].uuid}','${auth_token}',${login_time},true)`;
-              console.log(query);
-              db.query(query, (err, response1) => {
-                if (err) {
-                  console.log(err.stack);
-                } else {
-                  res.json({ all: response.rows, auth_token, status });
-                }
-              });
-            }
+            let authKey = require("uuid/v1");
+            let auth_token = authKey();
+            let status ="successfull";
+            let login_time = new Date().getTime();
+            let query = `insert into session(uuid,user_uuid,token,login_time,active) values ('${response.rows[0].uuid}','${response.rows[0].uuid}','${auth_token}',${login_time},true)`;
+            console.log(query);
+            db.query(query, (err, response1) => {
+              if (err) {
+                console.log(err.stack);
+                console.log(JSON.stringify(err))
+              } else {
+                res.json({ all: response.rows, auth_token, status });
+                console.log(JSON.stringify(err))
+              }
+            });
           }
         }
-      );
-    });
+      }
+    );
+  });
 
  //logout
     api.put("/logout", (req, res) => {
@@ -431,7 +436,7 @@ export default ({ config, db }) => {
   //images labelled
   api.put("/images_labelled/:cid", (req, res) => {
       
-    // const { s } = req.body;
+    // const { updated_by } = req.body;
     const label = "labelled"
     const updated_date = new Date().getTime();
     

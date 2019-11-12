@@ -24,7 +24,7 @@ export default ({ config, db }) => {
         } else {
           console.log(response.rows);
           if (response.rows.length == 0) {
-            res.json({ login_message: "Invalid User/ Passwordss" });
+            res.json({ login_message: "Invalid User/ Password" });
           } else {
             let authKey = require("uuid/v1");
             let auth_token = authKey();
@@ -83,6 +83,9 @@ export default ({ config, db }) => {
       }
     );
   });
+    
+
+
 
  //logout
     api.put("/logout", (req, res) => {
@@ -154,29 +157,54 @@ export default ({ config, db }) => {
 
   api.post("/users", (req, res, next) => {
 //change end point to loginForDoctor
-    const validate = ajv.compile(validateCategoryAJV);
-    const valid = validate(req.body);
-    if (!valid) {
-      return next({ Errors: validate.errors });
-    }
+    // const validate = ajv.compile(validateCategoryAJV);
+    // const valid = validate(req.body);
+    // if (!valid) {
+    //   return next({ Errors: validate.errors });
+    // }
 
-    const { user_name, password,user_type } = req.body;
+    const { user_name,name, password,user_type,email,gender,created_by} = req.body;
 
     const uuidv1 = require('uuid/v1');
     const uuid = uuidv1()
 
     const created_time = new Date().getTime();
 
-    db.query(`insert into users(uuid,user_name,password,created_time,active,user_type) values('${uuid}','${user_name}','${password}','${created_time}',true,'${user_type}')`,
-      (err, response) => {
+    // db.query(`insert into users(uuid,user_name,name,email,password,created_time,active,user_type,gender,created_by) values('${uuid}','${user_name}','${name}','${email}','${password}','${created_time}',true,'${user_type}','${gender}','${created_by}')`,
+    //   (err, response) => {
+    //     if (err) {
+    //       console.log(err.stack);
+    //     } else {
+    //       console.log(response.rows);
+    //       res.json({ "status": "successfull", "response": response.rows });
+    //     }
+    //   });
+
+
+    db.query(`insert into users(uuid,user_name,name,email,password,created_time,active,user_type,gender,created_by) values('${uuid}','${user_name}','${name}','${email}','${password}','${created_time}',true,'${user_type}','${gender}','${created_by}')`,
+    (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        console.log(response.rows);
+        let query = `select * from users`;
+          db.query(query, (err, response1) => {
         if (err) {
           console.log(err.stack);
+          console.log(JSON.stringify(err))
         } else {
-          console.log(response.rows);
-          res.json({ "status": "successfull", "response": response.rows });
+          // res.json({ all: response.rows, status :"success"});
+          res.json({ "status": "success", "response": response1.rows });
+          
         }
-      });
+      })
+    };
   });
+
+
+  });
+
+
 
 
   api.put("/users/:cid", (req, res) => {

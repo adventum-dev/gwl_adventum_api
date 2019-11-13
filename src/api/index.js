@@ -593,6 +593,19 @@ export default ({ config, db }) => {
   });
 
 
+  api.get("/image_uuid", (req, res) => {
+
+    db.query(`SELECT uuid from images`, (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        console.log(response.rows);
+        res.json({ "image_uuid": response.rows });
+      }
+    });
+  });
+
+
 
 
 

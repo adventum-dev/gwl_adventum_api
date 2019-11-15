@@ -605,8 +605,48 @@ export default ({ config, db }) => {
     });
   });
 
+// insert into folders
+
+  api.post("/folders", (req, res, next) => {
+
+    // const validate = ajv.compile(validatePublicKeyAJV);
+    // const valid = validate(req.body);
+    // if (!valid) {
+    //   return next({ Errors: validate.errors });
+    // }
+
+    const {doctor_uuid,patient_uuid, folder_id,folder_status,last_labelled} = req.body;
+
+    const uuidv1 = require('uuid/v1');
+    const uuid = uuidv1()
+
+    const login_time = new Date().getTime();
+
+    db.query(`insert into folders(uuid,doctor_uuid,patient_uuid,folder_id,folder_status,last_labelled) values('${uuid}','${doctor_uuid}','${patient_uuid}','${folder_id}','${folder_status}','${last_labelled}')`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ "status": "successfull", "response": response.rows });
+        }
+      });
+  });
 
 
+  api.get("/folder_status/:stat", (req, res) => {
+
+    // db.query(`SELECT * from folders where doctor_uuid='${req.params.docid}' and folder_status='${req.params.stat}'`, 
+    db.query(`SELECT * from folders where folder_status='${req.params.stat}'`, 
+    (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        console.log(response.rows);
+        res.json({ "image_uuid": response.rows });
+      }
+    });
+  });
 
 
   return api;

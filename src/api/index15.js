@@ -463,115 +463,46 @@ export default ({ config, db }) => {
 
   //images labelled
   api.put("/images_labelled/:cid", (req, res) => {
-
-    const { updated_by } = req.body;
-    const updated_time = new Date().getTime();
-   const label = "labelled"
-   const updated_date = new Date().getTime();
-   let status = 'not completed';
-
-   db.query(
-     `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
-     (err, response) => {
-       if (err) {
-         console.log(err.stack);
-       } else {
-         console.log(response.rows, "response");
-         console.log(req.params.cid, "cid");
-
-         db.query(`select folder_id, image_id ,status from images where uuid= '${req.params.cid}'`,
-           (err, response1) => {
-             if (err) {
-               console.log(err.stack);
-             }
-             else {
-               console.log(response1.rows, "response1");
-
-               db.query(
-                 `update folders set folder_status = '${status}', last_labelled ='${response1.rows[0].image_id}', updated_time=
-                 ${updated_time} where folder_id = '${response1.rows[0].folder_id}'`,
-                 (err, response2) => {
-                   if (err) {
-                     console.log(err.stack);
-                   }
-                   else {
-
-                     db.query(
-                       `update patient_info set last_labelled = '${response1.rows[0].image_id}' where folder_id = '${response1.rows[0].folder_id}'`,
-                       (err, response2) => {
-                         if (err) {
-                           console.log(err.stack);
-                         }
-                         else {
-                           res.json({
-                             status: response1.rows
-                           })
-                         }
-                       });
-                   }
-                 }
-               )
-             }
-           })
-       }
-     }
-   );
- });
-
+      
+    // const { updated_by } = req.body;
+    const label = "labelled"
+    const updated_date = new Date().getTime();
+    
+    db.query(
+      `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ status:"labelled"});
+        }
+      }
+    );
+  });
 
 
     //images under evaluation
     api.put("/images_evaluation/:cid", (req, res) => {
+      
+      // const { s } = req.body;
+      const label = "under evaluation"
+      const updated_date = new Date().getTime();
+      
+      db.query(
+        `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
+        (err, response) => {
+          if (err) {
+            console.log(err.stack);
+          } else {
+            console.log(response.rows);
+            res.json({ status:"under evaluation"});
+          }
+        }
+      );
+    });
 
-      const { updated_by } = req.body;
-     const label = "under evaluation"
-     const updated_date = new Date().getTime();
-     let status = 'under evaluation';
-     const updated_time = new Date().getTime();
- 
-     db.query(
-       `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
-       (err, response) => {
-         if (err) {
-           console.log(err.stack);
-         } else {
-           console.log(response.rows,"response");
-           db.query(`select folder_id, image_id,status from images where uuid= '${req.params.cid}'`,
-           (err, response1) => {
-             if (err) {
-               console.log(err.stack);
-             }
-             else {
-               console.log(response1.rows, "response1");
- 
-               db.query(
-                 `update folders set folder_status = '${status}', last_labelled ='${response1.rows[0].image_id}', updated_time= ${updated_time} where folder_id = '${response1.rows[0].folder_id}'`,
-                 (err, response2) => {
-                   if (err) {
-                     console.log(err.stack);
-                   }
-                   else {
- 
-                     db.query(
-                       `update patient_info set last_labelled = '${response1.rows[0].image_id}' where folder_id = '${response1.rows[0].folder_id}'`,
-                       (err, response2) => {
-                         if (err) {
-                           console.log(err.stack);
-                         }
-                         else {
-                          res.json({ status:response1.rows});
-                         }
-                       });
-                   }
-                 }
-               )
-             }
-           })
-         }
-       }
-     );
-   });
- 
+
       // total number of images labelled
 
   api.get("/images_labelled_count", (req, res) => {
@@ -713,52 +644,6 @@ export default ({ config, db }) => {
       } else {
         console.log(response.rows);
         res.json({ "image_uuid": response.rows });
-      }
-    });
-  });
-
-
-  api.get("/folder_status_complted/:fid", (req, res) => {
-
-    db.query(`SELECT folder_status from folders where folder_id='${req.params.fid}'`, 
-    (err, response) => {
-      if (err) {
-        console.log(err.stack);
-      } else {
-        console.log(response.rows);
-        res.json({ "folder_status": response.rows });
-      }
-    });
-  });
-
-
-  api.put("/folder_status_complete/:id", (req, res) => {
-
-    const {updated_by,status} = req.body;
-    const updated_time = new Date().getTime();
-    // const status = 'completed';
-
-    db.query(`update folders set folder_status='${status}', updated_by='${updated_by}', updated_time='${updated_time}' where folder_id='${req.params.id}'`,
-      (err, response) => {
-        if (err) {
-          console.log(err.stack);
-        } else {
-          console.log(response.rows);
-          res.json({ version, status: "live", method: "put" });
-        }
-      })
-  });
-
-
-  api.get("/image_status_id/:fid", (req, res) => {
-
-    db.query(`SELECT status from images where uuid='${req.params.fid}'`, 
-    (err, response) => {
-      if (err) {
-        console.log(err.stack);
-      } else {
-        console.log(response.rows);
-        res.json({ "status": response.rows });
       }
     });
   });

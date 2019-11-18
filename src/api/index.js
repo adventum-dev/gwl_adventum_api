@@ -1,4 +1,4 @@
-import { version } from "../../package.json";
+import {version} from '../../package.json';
 import { Router } from "express";
 import Ajv from "ajv";
 import validateComplaintAJV from "../models/validateComplaint";
@@ -282,7 +282,7 @@ export default ({ config, db }) => {
 
     const login_time = new Date().getTime();
 
-    db.query(`insert into session(uuid,user_name,token,login_time,logout_time,active) values('${uuid}','${user_name}','${token}','${login_time}','${logout_time}',true)`,
+    db.query(`insert into session(uuid,user_name,token,login_time,logout_time,active) values('${token}','${user_name}','${token}','${login_time}','${logout_time}',true)`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
@@ -463,46 +463,117 @@ export default ({ config, db }) => {
 
   //images labelled
   api.put("/images_labelled/:cid", (req, res) => {
-      
-    // const { updated_by } = req.body;
-    const label = "labelled"
-    const updated_date = new Date().getTime();
-    
-    db.query(
-      `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
-      (err, response) => {
-        if (err) {
-          console.log(err.stack);
-        } else {
-          console.log(response.rows);
-          res.json({ status:"labelled"});
-        }
-      }
-    );
-  });
+
+    const { updated_by } = req.body;
+    const updated_time = new Date().getTime();
+   const label = "labelled"
+   const updated_date = new Date().getTime();
+   let status = 'not completed';
+
+   db.query(
+     `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
+     (err, response) => {
+       if (err) {
+         console.log(err.stack);
+       } else {
+         console.log(response.rows, "response");
+         console.log(req.params.cid, "cid");
+
+         db.query(`select folder_id, image_id from images where uuid= '${req.params.cid}'`,
+           (err, response1) => {
+             if (err) {
+               console.log(err.stack);
+             }
+             else {
+               console.log(response1.rows, "response1");
+
+               db.query(
+                 `update folders set folder_status = '${status}', last_labelled ='${response1.rows[0].image_id}', updated_time=
+                 ${updated_time} where folder_id = '${response1.rows[0].folder_id}'`,
+                 (err, response2) => {
+                   if (err) {
+                     console.log(err.stack);
+                   }
+                   else {
+
+                     db.query(
+                       `update patient_info set last_labelled = '${response1.rows[0].image_id}' where folder_id = '${response1.rows[0].folder_id}'`,
+                       (err, response2) => {
+                         if (err) {
+                           console.log(err.stack);
+                         }
+                         else {
+                           res.json({
+                             status: "success"
+                           })
+                         }
+                       });
+                   }
+                 }
+               )
+             }
+           })
+       }
+     }
+   );
+ });
+
 
 
     //images under evaluation
     api.put("/images_evaluation/:cid", (req, res) => {
-      
-      // const { s } = req.body;
-      const label = "under evaluation"
-      const updated_date = new Date().getTime();
-      
-      db.query(
-        `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
-        (err, response) => {
-          if (err) {
-            console.log(err.stack);
-          } else {
-            console.log(response.rows);
-            res.json({ status:"under evaluation"});
-          }
-        }
-      );
-    });
 
-
+      const { updated_by } = req.body;
+     const label = "under evaluation"
+     const updated_date = new Date().getTime();
+     let status = 'under evaluation';
+     const updated_time = new Date().getTime();
+ 
+     db.query(
+       `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
+       (err, response) => {
+         if (err) {
+           console.log(err.stack);
+         } else {
+           console.log(response.rows,"response");
+           db.query(`select folder_id, image_id from images where uuid= '${req.params.cid}'`,
+           (err, response1) => {
+             if (err) {
+               console.log(err.stack);
+             }
+             else {
+               console.log(response1.rows, "response1");
+ 
+               db.query(
+                 `update folders set folder_status = '${status}', last_labelled ='${response1.rows[0].image_id}', updated_time= ${updated_time} where folder_id = '${response1.rows[0].folder_id}'`,
+                 (err, response2) => {
+                   if (err) {
+                     console.log(err.stack);
+                   }
+                   else {
+ 
+                     db.query(
+                       `update patient_info set last_labelled = '${response1.rows[0].image_id}' where folder_id = '${response1.rows[0].folder_id}'`,
+                       (err, response2) => {
+                         if (err) {
+                           console.log(err.stack);
+                         }
+                         else {
+                           res.json({
+                             status: "success"
+                           })
+                         }
+                       });
+                   }
+                 }
+               )
+             }
+           })
+         }
+       }
+     );
+   });
+ 
       // total number of images labelled
 
   api.get("/images_labelled_count", (req, res) => {
@@ -593,7 +664,209 @@ export default ({ config, db }) => {
   });
 
 
+  api.get("/image_uuid", (req, res) => {
 
+    db.query(`SELECT uuid from images`, (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        console.log(response.rows);
+        res.json({ "image_uuid": response.rows });
+      }
+    });
+  });
+
+// insert into folders
+
+  api.post("/folders", (req, res, next) => {
+
+    // const validate = ajv.compile(validatePublicKeyAJV);
+    // const valid = validate(req.body);
+    // if (!valid) {
+    //   return next({ Errors: validate.errors });
+    // }
+
+    const {doctor_uuid,patient_uuid, folder_id,folder_status,last_labelled} = req.body;
+
+    const uuidv1 = require('uuid/v1');
+    const uuid = uuidv1()
+
+    const login_time = new Date().getTime();
+
+    db.query(`insert into folders(uuid,doctor_uuid,patient_uuid,folder_id,folder_status,last_labelled) values('${uuid}','${doctor_uuid}','${patient_uuid}','${folder_id}','${folder_status}','${last_labelled}')`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ "status": "successfull", "response": response.rows });
+        }
+      });
+  });
+
+
+  api.get("/folder_status/:stat", (req, res) => {
+
+    // db.query(`SELECT * from folders where doctor_uuid='${req.params.docid}' and folder_status='${req.params.stat}'`, 
+    db.query(`SELECT * from folders where folder_status='${req.params.stat}'`, 
+    (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        console.log(response.rows);
+        res.json({ "image_uuid": response.rows });
+      }
+    });
+  });
+
+  //Admin statitistics
+
+  api.get("/admin_stats", (req,res) => {
+    //API to fetch total number of doctors
+
+    let userType ='doctor';
+    db.query(`SELECT count(uuid) from users where user_type='${userType}'`, 
+    (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+             res.json({
+               countOfDoctors : response.rows
+             });
+      }
+    }
+    )
+  });
+
+  // User statistics
+  api.get("/user_stats", (req,res) => {
+    //API to fetch user details, No of images assigned to user, No of images labelled, No of hours
+   let login_time ='';
+   let logout_time='';
+   let userArr=[];
+    db.query(`SELECT b.user_name,b.images,b.name, labelled_image,
+
+     array_agg(((DATE_PART('day', TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp
+    - TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp) * 24 + 
+         DATE_PART('hour', TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp 
+       - TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp)) * 60 +
+         DATE_PART('minute', TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp -
+       TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp)) * 60 +
+         DATE_PART('second',TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp -
+       TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp)) AS No_of_hours,
+
+       COUNT(TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'DD/MM/YYYY HH24:MI:SS'))AS no_of_sessions FROM session JOIN
+ (SELECT users.uuid,users.name,user_name, COUNT(image_id) AS images FROM users JOIN images ON users.uuid=images.user_uuid 
+ GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND active=false GROUP BY 
+ b.name, b.images,session.labelled_image,b.user_name`, 
+    (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        let arr =[];
+              console.log(response.rows,"response");
+              response.rows.forEach(r => 
+                arr.push(r));
+              console.log(arr, "no of hours");
+              
+              let hours = 0;
+              let minutes=0;
+              let seconds=0;
+              let totalTime = '';
+              let totalSeconds = 0;
+              arr.forEach(a => {
+                console.log(a, "aaa");
+                a.no_of_hours.forEach(f =>
+                totalSeconds=totalSeconds+f
+                
+                )
+                console.log(totalSeconds,"toyjvvkh");
+                hours= Math.floor(totalSeconds/3600);
+              totalSeconds%=3600;
+                 minutes=Math.floor(totalSeconds/60);
+                 seconds=totalSeconds%60;
+                 console.log(hours,minutes,seconds,"hms");
+                 totalTime= hours +':'+minutes+ ':'+seconds;
+
+                 a.time= totalTime
+                 totalSeconds=0;
+              })
+              
+                 
+                  console.log(arr,"hjhgjgvi");
+                  
+             res.json({
+               res: arr
+               
+             })
+             
+            
+      }
+    }
+    )
+  });
+
+// api to fetch user details and no of hours
+api.get("/user_evaluation_no_of_hours", (req,res) => {
+ 
+  db.query(`SELECT b.user_name,
+array_agg(((DATE_PART('day', TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp
+  - TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp) * 24 + 
+       DATE_PART('hour', TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp 
+     - TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp)) * 60 +
+       DATE_PART('minute', TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp -
+     TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp)) * 60 +
+       DATE_PART('second',TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp -
+     TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp)) AS No_of_hours
+ FROM session JOIN
+(SELECT users.uuid,users.name,user_name, COUNT(image_id) AS images FROM users JOIN images ON users.uuid=images.user_uuid 
+GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND active=false GROUP BY b.user_name`, 
+  (err, response) => {
+    if (err) {
+      console.log(err.stack);
+    } else {
+      let arr =[];
+      console.log(response.rows,"response");
+      response.rows.forEach(r => 
+        arr.push(r));
+      console.log(arr, "no of hours");
+      
+      let hours = 0;
+      let minutes=0;
+      let seconds=0;
+      let totalTime = '';
+      let totalSeconds = 0;
+      arr.forEach(a => {
+        console.log(a, "aaa");
+        a.no_of_hours.forEach(f =>
+        totalSeconds=totalSeconds+f
+        
+        )
+        console.log(totalSeconds,"toyjvvkh");
+        hours= Math.floor(totalSeconds/3600);
+      totalSeconds%=3600;
+         minutes=Math.floor(totalSeconds/60);
+         seconds=totalSeconds%60;
+         console.log(hours,minutes,seconds,"hms");
+         totalTime= hours +':'+minutes+ ':'+seconds;
+
+         a.time= totalTime
+         totalSeconds=0;
+      })
+      
+         
+          console.log(arr,"hjhgjgvi");
+          
+     res.json({
+       res: arr
+       
+     })
+     
+              
+    }
+  }
+  )
+});
 
 
   return api;

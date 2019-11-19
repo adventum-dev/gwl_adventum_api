@@ -588,9 +588,9 @@ export default ({ config, db }) => {
       })
   })
 
-  //API to count number of cases i.e. images and number of cases solvedi.e. labelled images
-  api.get("/images_cases_and_labelled_images_count", (req, res) => {
-    db.query(`select count(image_id) from images `,
+  //API to count number of cases i.e. folders and number of cases solvedi.e. labelled images
+  api.get("/folders_cases_and_labelled_images_count", (req, res) => {
+    db.query(`select count(folder_id) from folders `,
       (err, response) => {
         if (err) {
           console.log(err.stack);
@@ -606,7 +606,7 @@ export default ({ config, db }) => {
                 response1.rows.forEach(c =>
                   labelled_images = labelled_images + c.labelled_image)
                 res.json({
-                  NoOfImages: response.rows[0].count,
+                  NoOfFolders: response.rows[0].count,
                   NoOfLabelledImages: labelled_images
                 });
               }
@@ -745,7 +745,8 @@ export default ({ config, db }) => {
     let login_time = '';
     let logout_time = '';
     let userArr = [];
-    db.query(`SELECT b.user_name,max(b.images) as images,max(b.name) as name, max(labelled_image) as labelled_image,
+    db.query(`SELECT b.user_name,max(b.images) as images,max(b.name) as name, max(labelled_image) as labelled_image, max(b.pending_images)
+    AS pending_images,
 
      array_agg(((DATE_PART('day', TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp
     - TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp) * 24 + 
@@ -757,7 +758,8 @@ export default ({ config, db }) => {
        TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp)) AS No_of_hours,
 
        COUNT(TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'DD/MM/YYYY HH24:MI:SS'))AS no_of_sessions FROM session JOIN
- (SELECT users.uuid,users.name,user_name, COUNT(image_id) AS images FROM users JOIN images ON users.uuid=images.user_uuid 
+ (SELECT users.uuid,users.name,user_name, COUNT(image_id) AS images,count(folder_id) filter
+  (where images.status in( 'not completed','under evaluation') ) AS pending_images FROM users JOIN images ON users.uuid=images.user_uuid 
  GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND active=false GROUP BY b.user_name`,
       (err, response) => {
         if (err) {
@@ -848,7 +850,7 @@ GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND active=false GROUP BY b.
             minutes = Math.floor(totalSeconds / 60);
             seconds = totalSeconds % 60;
             console.log(hours, minutes, seconds, "hms");
-            totalTime = hours + ':' + minutes + ':' + seconds;
+            totalTime = hours + '.' + minutes ;
 
             a.time = totalTime
             totalSeconds = 0;

@@ -71,7 +71,7 @@ export default ({ config, db }) => {
             let auth_token = authKey();
             let status = "successfull";
             let login_time = new Date().getTime();
-            let query = `insert into session(uuid,user_uuid,token,login_time,active) values ('${response.rows[0].uuid}','${response.rows[0].uuid}','${auth_token}',${login_time},true)`;
+            let query = `insert into session(uuid,user_uuid,token,login_time,active) values ('${auth_token}','${response.rows[0].uuid}','${auth_token}',${login_time},true)`;
             console.log(query);
             db.query(query, (err, response1) => {
               if (err) {
@@ -364,17 +364,29 @@ export default ({ config, db }) => {
   });
 
 //Retrieval of uuid from images
-  api.get("/image_uuid", (req, res) => {
-
-    db.query(`SELECT uuid from images`, (err, response) => {
+  api.get("/image_uuid/:id", (req, res) => {
+       let finalArr =[];
+    db.query(`SELECT images.uuid, image_id from images where folder_id = (SELECT folder_id from images where uuid='${req.params.id}')`, (err, response) => {
       if (err) {
         console.log(err.stack);
       } else {
         console.log(response.rows);
-        res.json({ "image_uuid": response.rows });
+        let tempArr =[];
+        tempArr= response.rows;
+        tempArr.forEach(arr =>  {
+          console.log(arr,"arr");
+          
+          if(!arr.image_id.includes('.mp4')){
+             finalArr.push(arr)
+          }
+        })
+        console.log(finalArr,"finalARR");
+        
+        res.json({ "image_uuid": finalArr});
       }
     });
   });
+
 
   // Retrieval of image status
   api.get("/image_status_id/:fid", (req, res) => {
@@ -533,7 +545,7 @@ export default ({ config, db }) => {
 
     const { updated_by } = req.body;
     const updated_time = new Date().getTime();
-    const label = "labelled"
+    c
     const updated_date = new Date().getTime();
     let status = 'not completed';
 
@@ -947,6 +959,24 @@ GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND active=false GROUP BY b.
   });
 
  
+
+// for compare image add folder id
+  api.get("/image_compare", (req, res) => {
+    const label ='true';
+    db.query(`SELECT * from images where isactive='${label}' `, (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        console.log(response.rows);
+        res.json({ 
+          "image_label": response.rows 
+        });
+      }
+    });
+   });
+
+
+
 
 
   return api;

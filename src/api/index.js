@@ -1,4 +1,4 @@
-import { version } from '../../package.json';
+import {version} from '../../package.json'
 import { Router } from "express";
 import Ajv from "ajv";
 import validateComplaintAJV from "../models/validateComplaint";
@@ -8,7 +8,6 @@ var ajv = new Ajv();
 
 export default ({ config, db }) => {
   let api = Router();
-
 
 
   // API for User login 
@@ -134,7 +133,7 @@ export default ({ config, db }) => {
   // Retrieval of user details
 
   api.get("/users", (req, res) => {
-    db.query("SELECT * from users where active=true order by created_time", (err, response) => {
+    db.query("SELECT uuid, user_name, gender, phone,email, user_type, name from users where active=true order by created_time desc", (err, response) => {
       if (err) {
         console.log(err.stack);
       } else {
@@ -145,20 +144,50 @@ export default ({ config, db }) => {
 
   });
 
-  // Retrieval of user details on the basis of uuid
+  // // Retrieval of user details on the basis of uuid
 
-  api.get("/users/:cid", (req, res) => {
+  // api.get("/users/:cid", (req, res) => {
 
-    db.query(`SELECT * from users where uuid='${req.params.cid}' and active=true`, (err, response) => {
-      if (err) {
-        console.log(err.stack);
-      } else {
-        console.log(response.rows);
-        res.json({ "categories": response.rows });
-      }
-    });
-  });
+  //   db.query(`SELECT * from users where uuid='${req.params.cid}' and active=true`, (err, response) => {
+  //     if (err) {
+  //       console.log(err.stack);
+  //     } else {
+  //       console.log(response.rows);
+  //       res.json({ "categories": response.rows });
+  //     }
+  //   });
+  // });
 
+//Retrieval of user_id, user_name, allocated folders
+api.get('/users-folders',(req,res) => {
+
+          db.query(`SELECT user_name, MAX(name) as name, ARRAY_AGG(folder_id) as folders FROM users JOIN folders ON 
+          users.uuid = folders.doctor_uuid AND users.active = true GROUP BY user_name`, (err, response) => {
+          if(err) {
+            console.log(err.stack);
+          } else {
+            console.log(response.rows);
+            res.json({
+              usersFolders: response.rows
+            })
+          }
+})
+});
+
+//Retrieval of userNames with type = doctor
+api.get('/users-doctors',(req,res) => {
+
+  db.query(`SELECT user_name, uuid FROM users WHERE user_type = 'doctor' AND active =true`, (err, response) => {
+  if(err) {
+    console.log(err.stack);
+  } else {
+    console.log(response.rows);
+    res.json({
+      users: response.rows
+    })
+  }
+})
+});
 
 // Creation of User
 
@@ -194,34 +223,49 @@ export default ({ config, db }) => {
 
 //Updation of user details
 
-  api.put("/users/:cid", (req, res) => {
+  // api.put("/users/:cid", (req, res) => {
 
-    const { user_name, password } = req.body;
-    const created_time = new Date().getTime();
+  //   const { user_name, password } = req.body;
+  //   const created_time = new Date().getTime();
 
-    //take category_details cid from path and find the cid and update
-    db.query(`update users set user_name='${user_name}', password='${password}', created_time='${created_time}' where uuid='${req.params.cid}'`,
-      (err, response) => {
-        if (err) {
-          console.log(err.stack);
-        } else {
-          console.log(response.rows);
-          res.json({ version, status: "live", method: "put" });
-        }
-      })
-  });
+  //   //take category_details cid from path and find the cid and update
+  //   db.query(`update users set user_name='${user_name}', password='${password}', created_time='${created_time}' where uuid='${req.params.cid}'`,
+  //     (err, response) => {
+  //       if (err) {
+  //         console.log(err.stack);
+  //       } else {
+  //         console.log(response.rows);
+  //         res.json({ version, status: "live", method: "put" });
+  //       }
+  //     })
+  // });
 
 //Deletion of user
 
-  api.delete("/users/:cid", (req, res) => {
-    //take category_details cid from path and find the cid and update flag
-    db.query(`update users set active=false where uuid='${req.params.cid}'`,
+  api.put("/users/:uuid", (req, res) => {
+  
+    db.query(`UPDATE users SET active=false where uuid='${req.params.uuid}'`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
         } else {
-          console.log(response.rows);
-          res.json({ version, status: "live", method: "delete" });
+          db.query(`UPDATE folders SET active=false where doctor_uuid='${req.params.uuid}'`,
+          (err1, response1) => {
+            if (err1) {
+              console.log(err1.stack);
+            } else {
+              db.query(`UPDATE images SET isactive=false where user_uuid='${req.params.uuid}'`,
+              (err2, response2) => {
+                if (err2) {
+                  console.log(err2.stack);
+                } else {
+                  res.json({
+                    respone: "success"
+                  })
+              }
+            })
+            }
+          })
         }
       })
   })
@@ -471,14 +515,14 @@ export default ({ config, db }) => {
 
 
    //Retrieval of folders
-  api.get("/images_unique_folder", (req, res) => {
-    db.query(`select distinct folder_id from images order by folder_id`,
+  api.get("/folder-ids", (req, res) => {
+    db.query(`select folder_id from folders`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
         } else {
           console.log(response.rows);
-          res.json({ "images": response.rows });
+          res.json({ folders: response.rows });
         }
       })
   })
@@ -538,6 +582,110 @@ export default ({ config, db }) => {
           res.json({ "status": "successfull", "response": response.rows });
         }
       });
+  });
+
+
+  // Allocating folders to the NEW USER
+  api.post('/allocate-folder/new', (req,res) => {
+    const {userDetails} = req.body;
+    const created_date = new Date().getTime();
+    let uuid = require('uuid/v1');
+     let uuid1 = uuid();
+
+    let rows ='';
+    userDetails.folderDetails.forEach( folder => { 
+      if (rows.length != 0) {
+        rows += ',';
+      }
+      let study_id = folder.study_id;
+      let age = folder.age;
+      let gender= folder.gender;
+      let date_of_birth= folder.date_of_birth;
+      let date_of_scan=folder.date_of_scan;
+      let device= folder.device;
+      let eye=folder.eye;
+      let folder_id=folder.folder_id;
+      rows += `('${uuid1}',null, '${study_id}', '${age}', '${gender}', '${date_of_birth}', '${date_of_scan}', '${device}',
+       '${eye}', null, '${created_date}', '${folder_id}')`
+     })
+
+    db.query(`insert into patient_info values '${rows}'`,
+    (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        let val ='';
+        let folder_status = 'not opened'
+        userDetails.folderDetails.forEach( folder => { 
+          if (val.length != 0) {
+            val += ',';
+          }
+          let folder_id1 = folder.folder_id;
+          val += `('${uuid()}','${userDetails.uuid}','${uuid1}','${folder_id1}','${folder_status}',null )`
+        })
+        db.query(`INSERT  into folders '${val}' `,
+        (err1, response1) => {
+          if (err1) {
+            console.log(err1.stack);
+          } else {
+             
+            let folderResult ='';
+            let imageResult = '';
+            let image_status = 'not completed'
+            userDetails.folderDetails.forEach(folder => {
+              if (folderResult.length != 0) {
+                folderResult += ',';
+              }
+               let folder_id2 = folder.folder_id;
+               userDetails.image_ids.forEach( image => {
+                if (imageResult.length != 0) {
+                  imageResult += ',';
+                }
+                let image_id = image;
+                imageResult += `('${uuid()}','${userDetails.uuid}','${folder_id2}','${image_id}','${image_status}', null,
+                '${created_date}',null,null,true, null)`
+
+               })
+            })
+            db.query(`INSERT into images values  '${imageResult}'`,
+            (err2, response2) => {
+              if(err2){
+                console.log(err2.stack);
+                
+              }else {
+                res.json ({
+                  response : "success"
+                })
+              }
+            }
+            )           
+          }
+        });
+      }
+    });
+
+  });
+
+  //Allocating folder to EXISTING USER
+  api.put('/allocate-folder/existing', (req,res) => {
+    const {userDetails} = req.body;
+  });
+
+  //Transfer folder to the user
+  api.post('/transfer-folder', (req,res) => {
+       const {userDetails} = req.body;
+
+       db.query(`SELECT `, (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+
+          res.json({
+            response : response.rows
+          })
+        }
+       })
+
   });
 
   // Updation of images with image status and folder status (LABELLED)
@@ -823,7 +971,7 @@ api.get("/folder_status/:path/:docid", (req, res) => {
     let logout_time = '';
     let userArr = [];
     db.query(`SELECT b.user_name,max(b.images) as images,max(b.name) as name, max(labelled_image) as labelled_image, max(b.pending_images)
-    AS pending_images,
+    AS pending_images, MAX(b.folders) as folders,
 
      array_agg(((DATE_PART('day', TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp
     - TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp) * 24 + 
@@ -836,8 +984,8 @@ api.get("/folder_status/:path/:docid", (req, res) => {
 
        COUNT(TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'DD/MM/YYYY HH24:MI:SS'))AS no_of_sessions FROM session JOIN
  (SELECT users.uuid,users.name,user_name, COUNT(image_id) AS images,count(folder_id) filter
-  (where images.status in( 'not completed','under evaluation') ) AS pending_images FROM users JOIN images ON users.uuid=images.user_uuid 
- GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND active=false GROUP BY b.user_name`,
+  (where images.status in( 'not completed','under evaluation') ) AS pending_images, COUNT(distinct folder_id) as folders FROM users JOIN images ON users.uuid=images.user_uuid 
+ AND users.active = true GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND active=false GROUP BY b.user_name`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
@@ -898,8 +1046,8 @@ array_agg(((DATE_PART('day', TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYY
        DATE_PART('second',TO_CHAR(TO_TIMESTAMP(session.logout_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp -
      TO_CHAR(TO_TIMESTAMP(session.login_time/1000),'YYYY/MM/DD HH24:MI:SS')::timestamp)) AS No_of_hours
  FROM session JOIN
-(SELECT users.uuid,users.name,user_name, COUNT(image_id) AS images FROM users JOIN images ON users.uuid=images.user_uuid 
-GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND active=false GROUP BY b.user_name`,
+(SELECT users.uuid,users.name,user_name, COUNT(image_id) AS images FROM users JOIN images ON users.uuid=images.user_uuid
+AND users.active= true GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND active=false GROUP BY b.user_name`,
       (err, response) => {
         if (err) {
           console.log(err.stack);

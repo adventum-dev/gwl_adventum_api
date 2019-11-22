@@ -11,8 +11,8 @@ const pool = new Pool({
   ssl: envVariables.DB_SSL,
   port: envVariables.DB_PORT,
   max: envVariables.DB_MAX_POOL_SIZE,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000
+  idleTimeoutMillis: 80000,
+  connectionTimeoutMillis: 8000
 });
 
 // Expose method, log query, initiate trace etc at single point later on.

@@ -4,6 +4,9 @@ import Ajv from "ajv";
 import validateComplaintAJV from "../models/validateComplaint";
 import validateCategoryAJV from "../models/validateCategory";
 import validatePublicKeyAJV from "../models/validatePublicKey";
+
+import asyncHandler from 'express-async-handler';
+import listDirectories from './aws'
 var ajv = new Ajv();
 
 export default ({ config, db }) => {
@@ -595,6 +598,22 @@ api.get('/users-doctors',(req,res) => {
    console.log(uuid,"uuid");
    console.log(userDetails,"user");
 
+  //  var folder=["1003","1004","1005","1006"];
+
+  // const { folder } = req.body;
+
+  // var folderassests ={};
+  // console.log("Api hit")
+  // for(var i=0;i<folder.length;i++){
+  //   console.log(folder[i])
+  //    const folderRes =  listDirectories({Prefix:folder[i]});
+  //   console.log(folderRes,"folderres");
+  //   folderassests[folder[i]]=folderRes;
+  // }
+  // console.log("transaction completed")
+  // res.json(folderassests);
+
+
 
    userDetails.folderDetails.forEach( u => {
      uuidArr.push(uuid1());
@@ -1168,6 +1187,42 @@ AND users.active= true GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND a
    });
 
 
+  //  api.get("/s3bucket", (req,res) =>{
+  //    listDirectories().then((response)=>{
+  //     res.json(response);
+  //    })
+  //  })
+
+   api.get("/s3bucket/:cid", (req,res) =>{
+
+    const { folder } = req.body;
+    //  response
+     listDirectories({Prefix:'${req.params.cid}'}).then((response)=>{
+      // listDirectories({Prefix:'${folder}'}).then((response)=>{
+      res.json(response);
+     })
+   })
+
+// s3 bucket API to get folder details
+   api.get("/s3bucketARRAY",asyncHandler(async (req, res, next) =>{
+    //  response
+    // var folder=["1003/","1004/","1005/","1006/"];
+    const { folder } = req.body;
+
+    var folderassests ={};
+    console.log("Api hit")
+    for(var i=0;i<folder.length;i++){
+      console.log(folder[i])
+       const folderRes = await listDirectories({Prefix:folder[i]});
+      console.log(folderRes,"folderres");
+      folderassests[folder[i]]=folderRes;
+    //  listDirectories({Prefix:folder[i]}).then((response)=>{
+        //  folderassests = (response[i])
+    //  })
+    }
+    console.log("transaction completed")
+    res.json(folderassests);
+   }))
 
 
 

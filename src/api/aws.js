@@ -1,8 +1,8 @@
 var AwsS3 = require ('aws-sdk/clients/s3');
 const s3 = new AwsS3 ({
-  accessKeyId: 'AKIAIPRUME6PYKK3RCXA',
-  secretAccessKey: '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',
-  region: 'us-east-1',
+  accessKeyId: '',
+  secretAccessKey: '',
+  region: '',
 });
 
 const listDirectories = (params={}) => {

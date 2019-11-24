@@ -70,7 +70,7 @@ export default ({ config, db }) => {
             let auth_token = authKey();
             let status = "successfull";
             let login_time = new Date().getTime();
-            let query = `insert into session(uuid,user_uuid,token,login_time,active) values ('${auth_token}','${response.rows[0].uuid}','${auth_token}',${login_time},true)`;
+            let query = `insert into session(uuid,user_uuid,token,login_time,active) values ('${response.rows[0].uuid}','${response.rows[0].uuid}','${auth_token}',${login_time},true)`;
             console.log(query);
             db.query(query, (err, response1) => {
               if (err) {
@@ -590,13 +590,21 @@ api.get('/users-doctors',(req,res) => {
     const {userDetails} = req.body;
     const created_date = new Date().getTime();
     let uuid = require('uuid/v1');
-     let uuid1 = uuid();
+   let uuid1 = () => uuid();
+   let uuidArr = [];
+   console.log(uuid,"uuid");
+   console.log(userDetails,"user");
 
+
+   userDetails.folderDetails.forEach( u => {
+     uuidArr.push(uuid1());
+   })
+   console.log(uuidArr,"arrrrr");
+   
     let rows ='';
+    let rowArr =[];
+    let image_uuid = null;
     userDetails.folderDetails.forEach( folder => { 
-      if (rows.length != 0) {
-        rows += ',';
-      }
       let study_id = folder.study_id;
       let age = folder.age;
       let gender= folder.gender;
@@ -605,49 +613,72 @@ api.get('/users-doctors',(req,res) => {
       let device= folder.device;
       let eye=folder.eye;
       let folder_id=folder.folder_id;
-      rows += `('${uuid1}',null, '${study_id}', '${age}', '${gender}', '${date_of_birth}', '${date_of_scan}', '${device}',
-       '${eye}', null, '${created_date}', '${folder_id}')`
-     })
 
-    db.query(`insert into patient_info values '${rows}'`,
+      rows = `${image_uuid}, '${study_id}', '${age}', '${gender}', '${date_of_birth}', '${date_of_scan}', '${device}',
+       '${eye}', ${image_uuid}, '${created_date}', '${folder_id}'`
+       rowArr.push(rows); 
+      })
+
+      let newRow = '';
+      let uniqueUuid = '';
+      uuidArr.map(( uuid , i)=> { 
+        if (newRow.length != 0) {
+          newRow += ',';
+        }
+      uniqueUuid = uuid;
+      newRow += `('${uniqueUuid}',${rowArr[i]})`
+
+    })
+    console.log(rows,"rows");
+    console.log(newRow,"newRows");  
+
+
+    db.query(`insert into patient_info values ${newRow}`,
     (err, response) => {
       if (err) {
         console.log(err.stack);
       } else {
         let val ='';
         let folder_status = 'not opened'
-        userDetails.folderDetails.forEach( folder => { 
+        userDetails.folderDetails.forEach( (folder,index) => { 
           if (val.length != 0) {
             val += ',';
           }
           let folder_id1 = folder.folder_id;
-          val += `('${uuid()}','${userDetails.uuid}','${uuid1}','${folder_id1}','${folder_status}',null )`
+         
+          uuidArr[index];
+          val += `('${uuid()}','${userDetails.user_name}','${ uuidArr[index]}','${folder_id1}','${folder_status}',${image_uuid},
+          null,'${created_date}',null,null,true )`
         })
-        db.query(`INSERT  into folders '${val}' `,
+        console.log(val,"val");
+        
+        db.query(`INSERT  into folders values ${val} `,
         (err1, response1) => {
           if (err1) {
             console.log(err1.stack);
           } else {
              
-            let folderResult ='';
             let imageResult = '';
             let image_status = 'not completed'
             userDetails.folderDetails.forEach(folder => {
-              if (folderResult.length != 0) {
-                folderResult += ',';
-              }
+
                let folder_id2 = folder.folder_id;
-               userDetails.image_ids.forEach( image => {
+               console.log(folder_id2,"folderid2");
+               
+               folder.image_ids.forEach( image => {
                 if (imageResult.length != 0) {
                   imageResult += ',';
                 }
                 let image_id = image;
-                imageResult += `('${uuid()}','${userDetails.uuid}','${folder_id2}','${image_id}','${image_status}', null,
+                imageResult += `('${uuid()}','${userDetails.user_name}','${folder_id2}','${image_id}','${image_status}', null,
                 '${created_date}',null,null,true, null)`
 
                })
+               
+               
             })
-            db.query(`INSERT into images values  '${imageResult}'`,
+            console.log(imageResult,"imageResult");
+            db.query(`INSERT into images values ${imageResult}`,
             (err2, response2) => {
               if(err2){
                 console.log(err2.stack);
@@ -666,26 +697,40 @@ api.get('/users-doctors',(req,res) => {
 
   });
 
-  //Allocating folder to EXISTING USER
-  api.put('/allocate-folder/existing', (req,res) => {
+  //Transferring folder to the USER
+  api.put('/transfer-folder', (req,res) => {
     const {userDetails} = req.body;
-  });
+    const updated_date = new Date().getTime();
+   console.log(userDetails,"user");
+   
+    let rows ='';
+    userDetails.folderDetails.forEach( folder => { 
+      if (rows.length != 0) {
+        rows += ',';
+      }
+      let folder_id=folder;
+      console.log(rows,"rrrr");
+      
+      rows += `(${folder_id})`
+     })
+console.log(rows,"rows");
 
-  //Transfer folder to the user
-  api.post('/transfer-folder', (req,res) => {
-       const {userDetails} = req.body;
-
-       db.query(`SELECT `, (err, response) => {
-        if (err) {
-          console.log(err.stack);
-        } else {
-
-          res.json({
-            response : response.rows
-          })
-        }
-       })
-
+    db.query(`UPDATE folders SET doctor_uuid = '${userDetails.user_name}' WHERE folder_id IN('${rows}')`,
+    (err, response) => {
+      if (err) {
+        console.log(err.stack);
+      } else {
+        db.query(`UPDATE images SET user_uuid = '${userDetails.user_name}',  updated_date = ${updated_date} WHERE folder_id IN('${rows}')`,
+        (err1, response1) => {
+          if (err1) {
+            console.log(err1.stack);
+          } else {
+            res.json({ response : "success"})
+          }
+        });
+      }
+    }
+    )
   });
 
   // Updation of images with image status and folder status (LABELLED)
@@ -693,7 +738,6 @@ api.get('/users-doctors',(req,res) => {
 
     const { updated_by } = req.body;
     const updated_time = new Date().getTime();
-    c
     const updated_date = new Date().getTime();
     let status = 'not completed';
 

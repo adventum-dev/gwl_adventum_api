@@ -598,22 +598,6 @@ api.get('/users-doctors',(req,res) => {
    console.log(uuid,"uuid");
    console.log(userDetails,"user");
 
-  //  var folder=["1003","1004","1005","1006"];
-
-  // const { folder } = req.body;
-
-  // var folderassests ={};
-  // console.log("Api hit")
-  // for(var i=0;i<folder.length;i++){
-  //   console.log(folder[i])
-  //    const folderRes =  listDirectories({Prefix:folder[i]});
-  //   console.log(folderRes,"folderres");
-  //   folderassests[folder[i]]=folderRes;
-  // }
-  // console.log("transaction completed")
-  // res.json(folderassests);
-
-
 
    userDetails.folderDetails.forEach( u => {
      uuidArr.push(uuid1());
@@ -666,7 +650,7 @@ api.get('/users-doctors',(req,res) => {
           let folder_id1 = folder.folder_id;
          
           uuidArr[index];
-          val += `('${uuid()}','${userDetails.user_name}','${ uuidArr[index]}','${folder_id1}','${folder_status}',${image_uuid},
+          val += `('${uuid()}','${userDetails.user_name.uuid}','${ uuidArr[index]}','${folder_id1}','${folder_status}',${image_uuid},
           null,'${created_date}',null,null,true )`
         })
         console.log(val,"val");
@@ -689,7 +673,7 @@ api.get('/users-doctors',(req,res) => {
                   imageResult += ',';
                 }
                 let image_id = image;
-                imageResult += `('${uuid()}','${userDetails.user_name}','${folder_id2}','${image_id}','${image_status}', null,
+                imageResult += `('${uuid()}','${userDetails.user_name.uuid}','${folder_id2}','${image_id}','${image_status}', null,
                 '${created_date}',null,null,true, null)`
 
                })
@@ -727,19 +711,23 @@ api.get('/users-doctors',(req,res) => {
       if (rows.length != 0) {
         rows += ',';
       }
-      let folder_id=folder;
+      let folder_id=folder.value;
       console.log(rows,"rrrr");
       
-      rows += `(${folder_id})`
+      rows += `'${folder_id}'`
      })
 console.log(rows,"rows");
+console.log(userDetails.user_name.uuid,"uuuu");
+let q = `UPDATE folders SET doctor_uuid = '${userDetails.user_name.uuid}' WHERE folder_id IN(${rows})`;
+console.log(q,"q");
 
-    db.query(`UPDATE folders SET doctor_uuid = '${userDetails.user_name}' WHERE folder_id IN('${rows}')`,
+
+    db.query(`UPDATE folders SET doctor_uuid = '${userDetails.user_name.uuid}' WHERE folder_id IN(${rows})`,
     (err, response) => {
       if (err) {
         console.log(err.stack);
       } else {
-        db.query(`UPDATE images SET user_uuid = '${userDetails.user_name}',  updated_date = ${updated_date} WHERE folder_id IN('${rows}')`,
+        db.query(`UPDATE images SET user_uuid = '${userDetails.user_name.uuid}',  updated_date = ${updated_date} WHERE folder_id IN(${rows})`,
         (err1, response1) => {
           if (err1) {
             console.log(err1.stack);
@@ -759,6 +747,7 @@ console.log(rows,"rows");
     const updated_time = new Date().getTime();
     const updated_date = new Date().getTime();
     let status = 'not completed';
+    let label = 'labelled';
 
     db.query(
       `update images set status='${label}',updated_date=${updated_date} where uuid='${req.params.cid}'`,
@@ -1187,11 +1176,15 @@ AND users.active= true GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND a
    });
 
 
-  //  api.get("/s3bucket", (req,res) =>{
-  //    listDirectories().then((response)=>{
-  //     res.json(response);
-  //    })
-  //  })
+   api.get("/s3bucket", (req,res) =>{
+     let tempArr = [];
+     listDirectories().then((response)=>{
+       response.Comp.Prefix.forEach( p => {
+         tempArr.push(p);
+       })
+      res.json({ Array : tempArr});
+     })
+   })
 
    api.get("/s3bucket/:cid", (req,res) =>{
 
@@ -1204,18 +1197,18 @@ AND users.active= true GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND a
    })
 
 // s3 bucket API to get folder details
-   api.get("/s3bucketARRAY",asyncHandler(async (req, res, next) =>{
+   api.post("/s3bucketARRAY",asyncHandler(async (req, res, next) =>{
     //  response
     // var folder=["1003/","1004/","1005/","1006/"];
-    const { folder } = req.body;
+    const { folder_ids } = req.body;
 
     var folderassests ={};
     console.log("Api hit")
-    for(var i=0;i<folder.length;i++){
-      console.log(folder[i])
-       const folderRes = await listDirectories({Prefix:folder[i]});
+    for(var i=0;i<folder_ids.length;i++){
+      console.log(folder_ids[i])
+       const folderRes = await listDirectories({Prefix:folder_ids[i]});
       console.log(folderRes,"folderres");
-      folderassests[folder[i]]=folderRes;
+      folderassests[folder_ids[i]]=folderRes;
     //  listDirectories({Prefix:folder[i]}).then((response)=>{
         //  folderassests = (response[i])
     //  })

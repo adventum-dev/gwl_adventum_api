@@ -1,3 +1,5 @@
+// require('dotenv').config();
+
 const envVariables = {
   // DB configurations
   DB_USER: process.env.DB_USER || "zwathagehqflzb",
@@ -10,7 +12,9 @@ const envVariables = {
   //server configurations
   SERVER_PORT: process.env.SERVER_PORT || "8081",
   PORT: 8081,
-	BODY_LIMIT: "100kb",
-	CROS_HEADERS: ["Link"]
+	BODY_LIMIT: "100000kb",
+  CROS_HEADERS: ["Link"],
+  ACCESS_KEY_ID: process.env.accessKeyId ,
+  SECRET_ACCESS_KEY: process.env.secretAccessKey,
 };
 export default envVariables;

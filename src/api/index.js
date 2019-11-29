@@ -1,4 +1,4 @@
-import {version} from '../../package.json'
+import { version } from '../../package.json'
 import { Router } from "express";
 import Ajv from "ajv";
 import validateComplaintAJV from "../models/validateComplaint";
@@ -7,9 +7,13 @@ import validatePublicKeyAJV from "../models/validatePublicKey";
 
 import asyncHandler from 'express-async-handler';
 import listDirectories from './aws'
-import { Response } from 'aws-sdk';
+// import { Response } from 'aws-sdk';
 const axios = require('axios');
+import $ from "jquery"
+import imageUpload from './aws_upload.js';
 var ajv = new Ajv();
+
+const fs = require('fs');
 
 export default ({ config, db }) => {
   let api = Router();
@@ -183,8 +187,10 @@ api.get('/users-doctors',(req,res) => {
   }
 })
 });
+  
 
-// Creation of User
+
+  // Creation of User
 
   api.post("/users", (req, res) => {
     //change end point to loginForDoctor
@@ -194,9 +200,9 @@ api.get('/users-doctors',(req,res) => {
     //   return next({ Errors: validate.errors });
     // }
 
-    const { user_name, name, password, user_type, email,phone, gender, created_by } = req.body;
-    console.log(req.body,"body");
-    
+    const { user_name, name, password, user_type, email, phone, gender, created_by } = req.body;
+    console.log(req.body, "body");
+
 
     const uuidv1 = require('uuid/v1');
     const uuid = uuidv1()
@@ -208,15 +214,15 @@ api.get('/users-doctors',(req,res) => {
         if (err) {
           console.log(err.stack);
         } else {
-              // res.json({ all: response.rows, status :"success"});
-              res.json({"userDetails": response.rows , "status" : "success"});
-          }
-        
+          // res.json({ all: response.rows, status :"success"});
+          res.json({ "userDetails": response.rows, "status": "success" });
+        }
+
+      });
   });
-});
 
 
-//Updation of user details
+  //Updation of user details
 
   // api.put("/users/:cid", (req, res) => {
 
@@ -235,32 +241,32 @@ api.get('/users-doctors',(req,res) => {
   //     })
   // });
 
-//Deletion of user
+  //Deletion of user
 
   api.put("/users/:uuid", (req, res) => {
-  
+
     db.query(`UPDATE users SET active=false where uuid='${req.params.uuid}'`,
       (err, response) => {
         if (err) {
           console.log(err.stack);
         } else {
           db.query(`UPDATE folders SET active=false where doctor_uuid='${req.params.uuid}'`,
-          (err1, response1) => {
-            if (err1) {
-              console.log(err1.stack);
-            } else {
-              db.query(`UPDATE images SET isactive=false where user_uuid='${req.params.uuid}'`,
-              (err2, response2) => {
-                if (err2) {
-                  console.log(err2.stack);
-                } else {
-                  res.json({
-                    respone: "success"
+            (err1, response1) => {
+              if (err1) {
+                console.log(err1.stack);
+              } else {
+                db.query(`UPDATE images SET isactive=false where user_uuid='${req.params.uuid}'`,
+                  (err2, response2) => {
+                    if (err2) {
+                      console.log(err2.stack);
+                    } else {
+                      res.json({
+                        respone: "success"
+                      })
+                    }
                   })
               }
             })
-            }
-          })
         }
       })
   })
@@ -296,7 +302,7 @@ api.get('/users-doctors',(req,res) => {
       });
   });
 
-   //Creation of session
+  //Creation of session
 
   api.post("/session", (req, res, next) => {
 
@@ -324,7 +330,7 @@ api.get('/users-doctors',(req,res) => {
       });
   });
 
-// Updation of session details
+  // Updation of session details
 
   api.put("/session/:pkid", (req, res) => {
 
@@ -361,7 +367,7 @@ api.get('/users-doctors',(req,res) => {
 
 
   //IMAGES TABLE
-    //Retrieval of images
+  //Retrieval of images
 
   api.get("/images", (req, res) => {
     db.query(`SELECT * from images where isactive=true`,
@@ -375,7 +381,7 @@ api.get('/users-doctors',(req,res) => {
       })
   })
 
-// Retrieval of images on the basis of uuid
+  // Retrieval of images on the basis of uuid
   api.get("/images/:pkid", (req, res) => {
     const { uuid } = req.body;
     db.query(`SELECT * from images where uuid='${req.params.pkid}' and isactive=true`,
@@ -389,7 +395,7 @@ api.get('/users-doctors',(req,res) => {
       })
   })
 
-// Retrieval of images on the basis of image_id
+  // Retrieval of images on the basis of image_id
   api.get("/images_id/:pkid", (req, res) => {
     db.query(`SELECT * from images where image_id='${req.params.pkid}'`,
       (err, response) => {
@@ -402,26 +408,26 @@ api.get('/users-doctors',(req,res) => {
       })
   });
 
-//Retrieval of uuid from images
+  //Retrieval of uuid from images
   api.get("/image_uuid/:id", (req, res) => {
-       let finalArr =[];
+    let finalArr = [];
     db.query(`SELECT images.uuid, image_id from images where folder_id = (SELECT folder_id from images where uuid='${req.params.id}')`, (err, response) => {
       if (err) {
         console.log(err.stack);
       } else {
         console.log(response.rows);
-        let tempArr =[];
-        tempArr= response.rows;
-        tempArr.forEach(arr =>  {
-          console.log(arr,"arr");
-          
-          if(!arr.image_id.includes('.mp4')){
-             finalArr.push(arr)
+        let tempArr = [];
+        tempArr = response.rows;
+        tempArr.forEach(arr => {
+          console.log(arr, "arr");
+
+          if (!arr.image_id.includes('.mp4')) {
+            finalArr.push(arr)
           }
         })
-        console.log(finalArr,"finalARR");
-        
-        res.json({ "image_uuid": finalArr});
+        console.log(finalArr, "finalARR");
+
+        res.json({ "image_uuid": finalArr });
       }
     });
   });
@@ -430,18 +436,18 @@ api.get('/users-doctors',(req,res) => {
   // Retrieval of image status
   api.get("/image_status_id/:fid", (req, res) => {
 
-    db.query(`SELECT status from images where uuid='${req.params.fid}'`, 
-    (err, response) => {
-      if (err) {
-        console.log(err.stack);
-      } else {
-        console.log(response.rows);
-        res.json({ "status": response.rows });
-      }
-    });
+    db.query(`SELECT status from images where uuid='${req.params.fid}'`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ "status": response.rows });
+        }
+      });
   });
 
- //Creation of image
+  //Creation of image
 
   api.post("/images", (req, res, next) => {
 
@@ -471,7 +477,7 @@ api.get('/users-doctors',(req,res) => {
       });
   });
 
-//Updation of image
+  //Updation of image
 
   api.put("/images/:id", (req, res) => {
     const { status, updated_by } = req.body;
@@ -509,7 +515,7 @@ api.get('/users-doctors',(req,res) => {
   //FOLDERS TABLE
 
 
-   //Retrieval of folders
+  //Retrieval of folders
   api.get("/folder-ids", (req, res) => {
     db.query(`select folder_id from folders where active = true`,
       (err, response) => {
@@ -527,7 +533,7 @@ api.get('/users-doctors',(req,res) => {
 
   api.get("/images_unique_images/:cid", (req, res) => {
 
-    db.query(`select * from images where folder_id='${req.params.cid}' and isactive=true`, (err, response) => {
+    db.query(`select * from images where folder_id='${req.params.cid}' and isactive=true order by image_id asc`, (err, response) => {
       if (err) {
         console.log(err.stack);
       } else {
@@ -537,11 +543,12 @@ api.get('/users-doctors',(req,res) => {
     });
   });
 
-//Retrieval of image details based on uuid
+  //Retrieval of image details based on uuid
 
   api.get("/image_details/:uuid", (req, res) => {
 
-    db.query(`SELECT * from patient_info where folder_id = (select folder_id from images where uuid= '${req.params.uuid}')`, (err, response) => {
+    db.query(`SELECT * from patient_info where uuid=(SELECT patient_uuid FROM folders WHERE folder_id = (SELECT
+      folder_id FROM images WHERE uuid = '${req.params.uuid}'))`, (err, response) => {
       if (err) {
         console.log(err.stack);
       } else {
@@ -718,7 +725,7 @@ api.get('/users-doctors',(req,res) => {
                 }
               });            
           }
-               setPatientDetails();
+ setPatientDetails();
           
          
         
@@ -743,9 +750,9 @@ console.log(patientDetailsArray,"patientDetailsArray");
       if (rows.length != 0) {
         rows += ',';
       }
-      let folder_id=folder.value;
-      console.log(rows,"rrrr");
-      
+      let folder_id = folder.value;
+      console.log(rows, "rrrr");
+
       rows += `'${folder_id}'`
      })
 console.log(rows,"rows");
@@ -775,73 +782,68 @@ console.log(userDetails.user_name.uuid,"uuuu");
   });
 
   // Updation of images with image status and folder status (LABELLED)
-  api.put("/images_labelled/:cid", (req, res) => {
-
-    const { updated_by,image_id, user_uuid } = req.body;
-    const updated_time = new Date().getTime();
-    const updated_date = new Date().getTime();
-    let status = 'not completed';
-    let label = 'labelled';
-
-    db.query(
-      `update images set status='${label}',updated_date=${updated_date}, updated_by='${updated_by}', 
-      labelled_image_id ='${image_id}' where uuid='${req.params.cid}'`,
-      (err, response) => {
-        if (err) {
-          console.log(err.stack);
-        } else {
-          console.log(response.rows, "response");
-          console.log(req.params.cid, "cid");
-
-          db.query(`select folder_id, image_id from images where uuid= '${req.params.cid}' and isactive =true`,
-            (err, response1) => {
-              if (err) {
-                console.log(err.stack);
-              }
-              else {
-                console.log(response1.rows, "response1");
-
-                db.query(
-                  `update folders set folder_status = '${status}', last_labelled ='${response1.rows[0].image_id}',
-                  updated_by='${updated_by}', updated_time=${updated_time} where folder_id = '${response1.rows[0].folder_id}'`,
-                  (err, response2) => {
-                    if (err) {
-                      console.log(err.stack);
-                    }
-                    else {
-                      db.query(
-                        `update session set labelled_image = labelled_image+1 where active = true and user_uuid = '${user_uuid}'`,
-                        (err, response3) => {
-                          if (err) {
-                            console.log(err.stack);
-                          }
-                          else {
-                            res.json({
-                              status: "success"
-                            })
-                          }
-                        });
+  // api.put("/images_labelled/:cid", (req, res) => {
+  //   const { updated_by,image_id, user_uuid } = req.body;
+  //   const updated_time = new Date().getTime();
+  //   const updated_date = new Date().getTime();
+  //   let status = 'not completed';
+  //   let label = 'labelled';
+  //   db.query(
+  //     `update images set status='${label}',updated_date=${updated_date}, updated_by='${updated_by}', 
+  //     labelled_image_id ='${image_id}' where uuid='${req.params.cid}'`,
+  //     (err, response) => {
+  //       if (err) {
+  //         console.log(err.stack);
+  //       } else {
+  //         console.log(response.rows, "response");
+  //         console.log(req.params.cid, "cid");
+  //         db.query(`select folder_id, image_id from images where uuid= '${req.params.cid}' and isactive =true`,
+  //           (err, response1) => {
+  //             if (err) {
+  //               console.log(err.stack);
+  //             }
+  //             else {
+  //               console.log(response1.rows, "response1");
+  //               db.query(
+  //                 `update folders set folder_status = '${status}', last_labelled ='${response1.rows[0].image_id}',
+  //                 updated_by='${updated_by}', updated_time=${updated_time} where folder_id = '${response1.rows[0].folder_id}'`,
+  //                 (err, response2) => {
+  //                   if (err) {
+  //                     console.log(err.stack);
+  //                   }
+  //                   else {
+  //                     db.query(
+  //                       `update session set labelled_image = labelled_image+1 where active = true and user_uuid = '${user_uuid}'`,
+  //                       (err, response3) => {
+  //                         if (err) {
+  //                           console.log(err.stack);
+  //                         }
+  //                         else {
+  //                           res.json({
+  //                             status: "success"
+  //                           })
+  //                         }
+  //                       });
                     
-                    }
-                  }
-                )
-              }
-            })
-        }
-      }
-    );
-  });
+  //                   }
+  //                 }
+  //               )
+  //             }
+  //           })
+  //       }
+  //     }
+  //   );
+  // });
   
 
   // Updation of images with image status and folder status (UNDER EVALUATION)
-  api.put("/images_evaluation/:cid", (req, res) => {
+  api.put("/images_evaluation/:cid",(req, res) => {
 
     const { updated_by,user_uuid } = req.body;
     const label = "under evaluation"
     const updated_date = new Date().getTime();
     let status = 'under evaluation';
     const updated_time = new Date().getTime();
-
     db.query(
       `update images set status='${label}',updated_date=${updated_date}, updated_by='${updated_by}' where uuid='${req.params.cid}'`,
       (err, response) => {
@@ -866,7 +868,6 @@ console.log(userDetails.user_name.uuid,"uuuu");
                     }
                     else {
                       if(image_status== 'labelled'){
-
                         db.query(
                          `update session set labelled_image = labelled_image-1 where active = true and user_uuid = '${user_uuid}'`,
                          (err, response3) => {
@@ -901,22 +902,22 @@ console.log(userDetails.user_name.uuid,"uuuu");
 
   api.get("/folder_status_complted/:fid", (req, res) => {
 
-    db.query(`SELECT folder_status from folders where folder_id='${req.params.fid}'`, 
-    (err, response) => {
-      if (err) {
-        console.log(err.stack);
-      } else {
-        console.log(response.rows);
-        res.json({ "folder_status": response.rows });
-      }
-    });
+    db.query(`SELECT folder_status from folders where folder_id='${req.params.fid}'`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ "folder_status": response.rows });
+        }
+      });
   });
 
   //Updating folder_status
 
   api.put("/folder_status_complete/:id", (req, res) => {
 
-    const {updated_by,status} = req.body;
+    const { updated_by, status } = req.body;
     const updated_time = new Date().getTime();
     // const status = 'completed';
 
@@ -931,24 +932,24 @@ console.log(userDetails.user_name.uuid,"uuuu");
       })
   });
 
-// Retrieval of folders based on folder status
-api.get("/folder_status/:path/:docid", (req, res) => {
+  // Retrieval of folders based on folder status
+  api.get("/folder_status/:path/:docid", (req, res) => {
 
 
-  // db.query(`SELECT * from folders where folder_status='${req.params.path}' order by folder_id asc`, 
-  db.query(`SELECT * from folders where folder_status='${req.params.path}' and doctor_uuid='${req.params.docid}' and active =true`,
-    (err, response) => {
-      if (err) {
-        console.log(err.stack);
-      } else {
-        console.log(response.rows);
-        res.json({ "image_uuid": response.rows });
-      }
-    });
-});
+    // db.query(`SELECT * from folders where folder_status='${req.params.path}' order by folder_id asc`, 
+    db.query(`SELECT * from folders where folder_status='${req.params.path}' and doctor_uuid='${req.params.docid}' and active=true`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ "image_uuid": response.rows });
+        }
+      });
+  });
 
 
-    // Retrieval of total number of images labelled
+  // Retrieval of total number of images labelled
 
   api.get("/images_labelled_count", (req, res) => {
     db.query(`select count(status) from images where status='labelled'`,
@@ -989,10 +990,33 @@ api.get("/folder_status/:path/:docid", (req, res) => {
       })
   })
 
-//PATIENT_INFO TABLE
+  //PATIENT_INFO TABLE
+
+  //Creation of patient
+  api.post("/patient_info", (req, res, next) => {
 
 
-//Retrieval of patient details based on folder_id
+    const { image_uuid, study_id, age, gender, date_of_birth, date_of_scan, device, eye, folder_id } = req.body;
+
+    const uuidv1 = require('uuid/v1');
+    const uuid = uuidv1()
+
+    const created_date = new Date().getTime();
+
+
+    db.query(`insert into patient_info(uuid,image_uuid,study_id,age,gender,date_of_birth,date_of_scan,device,eye,created_date,folder_id) values('${uuid}','${image_uuid}','${study_id}','${age}','${gender}','${date_of_birth}','${date_of_scan}','${device}','${eye}','${created_date}',${folder_id})`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows);
+          res.json({ "status": "successfull", "response": response.rows });
+        }
+      });
+  });
+
+
+  //Retrieval of patient details based on folder_id
   api.get("/patient_info/:cid", (req, res) => {
 
     db.query(`SELECT * from patient_info where folder_id='${req.params.cid}'`, (err, response) => {
@@ -1153,7 +1177,7 @@ AND users.active= true GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND a
             minutes = Math.floor(totalSeconds / 60);
             seconds = totalSeconds % 60;
             console.log(hours, minutes, seconds, "hms");
-            totalTime = hours + '.' + minutes ;
+            totalTime = hours + '.' + minutes;
 
             a.time = totalTime
             totalSeconds = 0;
@@ -1177,9 +1201,9 @@ AND users.active= true GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND a
           console.log(err.stack);
         } else {
           console.log(response.rows, "response");
-           res.json({
-             res: response.rows
-           })
+          res.json({
+            res: response.rows
+          })
         }
       })
   });
@@ -1228,20 +1252,30 @@ AND users.active= true GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND a
 
  
 
-// for compare image add folder id
-  api.get("/image_compare", (req, res) => {
-    const label ='true';
-    db.query(`SELECT * from images where isactive='${label}' `, (err, response) => {
+
+  // for compare image add folder id
+  api.get("/image_compare/:cid", (req, res) => {
+    const label = 'true';
+    db.query(`SELECT * from images where uuid='${req.params.cid}' and isactive='true' `, (err, response) => {
       if (err) {
         console.log(err.stack);
       } else {
         console.log(response.rows);
-        res.json({ 
-          "image_label": response.rows 
+        db.query(`SELECT * from images where folder_id='${response.rows[0].folder_id}' `, (err1, response1) => {
+          if (err1) {
+            console.log(err1.stack);
+          } else {
+            console.log(response1.rows);
+            res.json({
+              "image_label": response1.rows
+            });
+          }
         });
       }
     });
-   });
+  });
+
+  
 
 
    api.get("/s3bucket", (req,res) =>{
@@ -1253,36 +1287,211 @@ AND users.active= true GROUP BY users.uuid) b ON session.user_uuid= b.uuid AND a
       res.json({Array: tempArr});
      })
    })
+  // api.get("/s3bucket", (req, res) => {
+  //   let tempArr = [];
+  //   listDirectories().then((response) => {
+  //     //  response.Comp.Prefix.forEach( p => {
+  //     //    tempArr.push(p);
+  //     //  })
+  //     res.json(response);
+  //   })
+  // })
 
-   api.get("/s3bucket/:cid", (req,res) =>{
+  api.get("/s3bucket/:cid", (req, res) => {
 
     const { folder } = req.body;
     //  response
-     listDirectories({Prefix:'${req.params.cid}'}).then((response)=>{
+    listDirectories({ Prefix: '${req.params.cid}' }).then((response) => {
       // listDirectories({Prefix:'${folder}'}).then((response)=>{
       res.json(response);
-     })
-   })
+    })
+  })
 
-// s3 bucket API to get folder details
-   api.post("/s3bucketARRAY",asyncHandler(async (req, res, next) =>{
+  // // s3 bucket API to get folder details
+  // api.post("/s3bucketARRAY", asyncHandler(async (req, res, next) => {
+  //   //  response
+  //   // var folder=["1003/","1004/","1005/","1006/"];
+  //   const { folder_ids } = req.body;
+
+  //   var folderassests = {};
+  //   console.log("Api hit")
+  //   for (var i = 0; i < folder_ids.length; i++) {
+  //     console.log(folder_ids[i])
+  //     const folderRes = await listDirectories({ Prefix: folder_ids[i] });
+  //     console.log(folderRes, "folderres");
+  //     folderassests[folder_ids[i]] = folderRes;
+  //     //  listDirectories({Prefix:folder[i]}).then((response)=>{
+  //     //  folderassests = (response[i])
+  //     //  })
+  //   }
+  //   console.log("transaction completed")
+  //   res.json(folderassests);
+  // }))
+
+
+  api.get("/s3bucket", (req, res) => {
+    let tempArr = [];
+    listDirectories().then((response) => {
+      //  response.Comp.Prefix.forEach( p => {
+      //    tempArr.push(p);
+      //  })
+      res.json(response);
+    })
+  })
+
+
+
+  // s3 bucket API to get folder details
+  api.post("/s3bucketARRAY",asyncHandler(async (req, res, next) =>{
     //  response
     // var folder=["1003/","1004/","1005/","1006/"];
     const { folder_ids } = req.body;
-
     var folderassests ={};
     console.log("Api hit")
     for(var i=0;i<folder_ids.length;i++){
       console.log(folder_ids[i])
        const folderRes = await listDirectories({Prefix:folder_ids[i]});
       console.log(folderRes,"folderres");
-      folderassests[folder_ids[i]]=folderRes;      
-
+      folderassests[folder_ids[i]]=folderRes;
     console.log("transaction completed")
    }
-
       res.json( { response:folderassests});
   }))
+
+
+
+  api.get("/readfile", (req, res) => {
+    console.log("read");
+    $.getJSON(
+      "https://input-annotation-adventum.s3.us-east-2.amazonaws.com/1001/patient_details.json",
+      function (json) {
+        console.log(json); // this will show the info it in firebug console
+        res.json(json)
+      }
+    );
+  })
+
+
+
+
+  api.post("/uploadEditedImagesss", asyncHandler(async (req, res) => {
+    const { base64,image_id } = req.body;
+    let s= image_id
+    let new_imageid = (s.length && s[0] == '/') ? s.slice(1) : s;
+    console.log(base64, "reqestod");
+    console.log(s, "image_id");
+    console.log(new_imageid, "new image_id");
+
+    //  if( image_id.charAt( 0 ) === '/' ){
+    //   console.log(image_id, "image_idss");
+    //  return image_id = image_id.slice( 1 );
+    //  console.log(image_id, "imagevbvbnb");
+    // }
+
+    // while( image_id.charAt( 0 ) === '/' )
+    // image_id1 = image_id.slice( 1 );
+
+
+
+
+    // console.log(image_id1, "image_idssss");
+    //  console.log('Annotated', req.body.anomaly_list)
+    //                 console.log('file', req.body.file);
+    //                 console.log('filename', req.body.fileName);
+    console.log('filbodyename');
+
+    await imageUpload(base64, new_imageid);
+
+    res.json({ ack: req.body })
+  }))
+
+
+  // api.put("/images_labelled", (req, res) => {
+
+  //   const { uuid,labelled_image, updated_by } = req.body;
+  //   const updated_time = new Date().getTime();
+
+  //   console.log(labelled_image);
+  //   console.log(updated_by,"updated_byyy");
+    
+    
+
+  //   db.query(`update images set labelled_images_id='${labelled_image}', updated_date='${updated_time}' updated_by='${updated_by}' where uuid='${uuid}'`,
+  //     (err, response) => {
+  //       if (err) {
+  //         console.log(err.stack);
+  //       } else {
+  //         console.log(response.rows);
+  //         res.json({ version, status: "live", method: "put" });
+  //       }
+  //     })
+  // });
+
+  api.put("/images_labelled", (req, res) => {
+    const { updated_by,image_id1, user_uuid ,cid} = req.body;
+    const updated_time = new Date().getTime();
+    const updated_date = new Date().getTime();
+    let status = 'not completed';
+    let label = 'labelled';
+
+    let s= image_id1
+    // console.log(s,"qwerty");
+    
+    let image_id = (s.length && s[0] == '/') ? s.slice(1) : s;
+
+    db.query(
+      `update images set status='${label}',updated_date=${updated_date}, updated_by='${updated_by}',
+      labelled_images_id ='${image_id}' where uuid='${cid}'`,
+      (err, response) => {
+        if (err) {
+          console.log(err.stack);
+        } else {
+          console.log(response.rows, "response");
+          console.log(req.body.cid, "cid");
+          db.query(`select folder_id, image_id from images where uuid= '${cid}' and isactive =true`,
+            (err, response1) => {
+              if (err) {
+                console.log(err.stack);
+              }
+              else {
+                console.log(response1.rows, "response1");
+                db.query(
+                  `update folders set folder_status = '${status}', last_labelled ='${image_id}',
+                  updated_by='${updated_by}', updated_time=${updated_time} where folder_id = '${response1.rows[0].folder_id}'`,
+                  (err, response2) => {
+                    if (err) {
+                      console.log(err.stack);
+                    }
+                    else {
+                      db.query(
+                        `update session set labelled_image = labelled_image+1 where active = true and user_uuid = '${user_uuid}'`,
+                        (err, response3) => {
+                          if (err) {
+                            console.log(err.stack);
+                          }
+                          else {
+                            res.json({
+                              status: "success"
+                            })
+                          }
+                        });
+                    }
+                  }
+                )
+              }
+            })
+        }
+      }
+    );
+  });
+
+
+
+  //   console.log("transaction completed")
+  //  }
+
+  //     res.json( { response:folderassests});
+  // }))
   
 
   return api;

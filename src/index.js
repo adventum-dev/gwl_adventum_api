@@ -24,7 +24,7 @@ app.use(
 
 app.use(
   bodyParser.json({
-    limit: envVariables.bodyLimit
+    limit: envVariables.BODY_LIMIT
   })
 );
 

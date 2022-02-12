@@ -31,7 +31,7 @@
   "author": "Jason Miller <jason@developit.ca>",
   "license": "MIT",
   "dependencies": {
-    "ajv": "^6.10.2",
+    "ajv": "^6.12.3",
     "aws-sdk": "^2.580.0",
     "axios": "^0.19.0",
     "babel-cli": "^6.9.0",
